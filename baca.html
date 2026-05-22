@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Pesan Anonymous</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Gloria+Hallelujah&display=swap" rel="stylesheet">
+    <style>
+        /* --- GLOBAL RESET & BASE --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+        }
+
+        /* --- HEADING --- */
+        h1 {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 30px;
+            color: #000000;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* --- TOP BAR --- */
+        .top-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 25px;
+            align-items: center;
+        }
+
+        .send-new-btn {
+            flex: 1;
+            padding: 16px 20px;
+            background-color: #d1d5db;
+            color: #374151;
+            border: 2px solid #9ca3af;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 500;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: block;
+        }
+        .send-new-btn:hover { background-color: #c4c8ce; border-color: #6b7280; }
+
+        .refresh-btn {
+            width: 56px;
+            height: 56px;
+            background-color: #d1d5db;
+            color: #374151;
+            border: 2px solid #9ca3af;
+            border-radius: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            font-size: 24px;
+            padding: 0;
+        }
+        .refresh-btn:hover { background-color: #c4c8ce; border-color: #6b7280; }
+        .refresh-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* --- MESSAGE LIST --- */
+        #message-list { list-style: none; padding: 0; margin: 0; }
+
+        .message-card {
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #d1d5db;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- MESSAGE HEADER --- */
+        .msg-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .msg-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background: #f3f4f6;
+            border: 2px solid #d1d5db;
+            border-radius: 50px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .msg-badge .label { color: #6b7280; font-weight: 500; }
+        .msg-badge .name { color: #000000; font-weight: 700; }
+        .msg-arrow { color: #9ca3af; font-size: 18px; }
+
+        /* --- MESSAGE CONTENT --- */
+        .msg-content {
+            font-family: 'Gloria Hallelujah', cursive;
+            font-size: 22px;
+            line-height: 1.6;
+            color: #1a1a1a;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+        }
+
+        /* --- MESSAGE IMAGE --- */
+        .msg-image {
+            max-width: 100%;
+            border-radius: 12px;
+            margin-top: 12px;
+            display: block;
+        }
+
+        /* --- TIMESTAMP --- */
+        .timestamp {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 12px;
+            display: block;
+            text-align: right;
+            font-weight: 500;
+        }
+
+        /* --- COMMENTS SECTION --- */
+        .comments-section {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .comment-toggle-btn {
+            background: #f3f4f6;
+            border: 2px solid #d1d5db;
+            border-radius: 50px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .comment-toggle-btn:hover { background: #e5e7eb; }
+        .comment-toggle-btn.active { background: #bbf7d0; border-color: #86efac; color: #166534; }
+
+        .comment-count { font-size: 12px; color: #6b7280; margin-left: 4px; }
+
+        /* --- COMMENT FORM --- */
+        .comment-form {
+            display: none;
+            margin-top: 15px;
+            animation: slideDown 0.3s ease;
+        }
+        .comment-form.show { display: block; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .comment-input-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .comment-sender-input {
+            flex: 0 0 35%;
+            padding: 10px 14px;
+            border: 2px solid #d1d5db;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+        }
+        .comment-sender-input:focus { border-color: #86efac; }
+
+        .comment-text-input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #d1d5db;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+        }
+        .comment-text-input:focus { border-color: #86efac; }
+
+        .comment-submit-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: #bbf7d0;
+            color: #166534;
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+        .comment-submit-btn:hover { background-color: #86efac; }
+        .comment-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* --- COMMENTS LIST --- */
+        .comments-list {
+            margin-top: 15px;
+            display: none;
+        }
+        .comments-list.show { display: block; }
+
+        .comment-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 12px 14px;
+            margin-bottom: 8px;
+        }
+
+        .comment-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .comment-sender-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: #000000;
+        }
+
+        .comment-time {
+            font-size: 11px;
+            color: #9ca3af;
+        }
+
+        .comment-text {
+            font-family: 'Gloria Hallelujah', cursive;
+            font-size: 16px;
+            color: #1a1a1a;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .no-comments {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 14px;
+            padding: 10px;
+            font-style: italic;
+        }
+
+        /* --- LOADER & EMPTY --- */
+        .loader {
+            text-align: center;
+            color: #9ca3af;
+            display: none;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px 20px;
+            font-size: 16px;
+        }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 480px) {
+            h1 { font-size: 28px; }
+            .msg-content { font-size: 20px; }
+            .msg-badge { font-size: 13px; padding: 6px 12px; }
+            .comment-input-row { flex-direction: column; }
+            .comment-sender-input { flex: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Messages For X3</h1>
+
+        <div class="top-bar">
+            <a href="kirim.html" class="send-new-btn">Kirim pesan baru</a>
+            <button onclick="loadMessages()" class="refresh-btn" id="refreshBtn" title="Refresh">&#x21bb;</button>
+        </div>
+
+        <div id="loader" class="loader">Memuat pesan...</div>
+        <ul id="message-list"></ul>
+    </div>
+
+    <script>
+        // --- KONFIGURASI SUPABASE ---
+        const supabaseUrl = 'https://vsnuptrzqzrxrltbxbrz.supabase.co'; 
+        const supabaseKey = 'sb_publishable_41Em7Uj8lkqJIq3rgQ2FNA_v4vT15Xg'; 
+
+        const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+        // --- FUNGSI Muat PESAN ---
+        async function loadMessages() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.disabled = true;
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('message-list').innerHTML = '';
+
+            const { data, error } = await client
+                .from('messages')
+                .select('*')
+                .order('created_at', { ascending: false })
+                .limit(50); 
+
+            document.getElementById('loader').style.display = 'none';
+            refreshBtn.disabled = false;
+
+            if (error) {
+                console.error('Error:', error);
+                alert('Gagal memuat pesan!');
+                return;
+            }
+
+            displayMessages(data);
+        }
+
+        // --- FUNGSI Muat KOMEN UNTUK SATU PESAN ---
+        async function loadComments(messageId) {
+            const commentsList = document.getElementById(`comments-list-${messageId}`);
+            const form = document.getElementById(`comment-form-${messageId}`);
+            const toggleBtn = document.getElementById(`comment-toggle-${messageId}`);
+
+            const isShowing = commentsList.classList.contains('show');
+
+            // Tutup semua form dan list komen lain
+            document.querySelectorAll('.comment-form').forEach(f => f.classList.remove('show'));
+            document.querySelectorAll('.comments-list').forEach(l => l.classList.remove('show'));
+            document.querySelectorAll('.comment-toggle-btn').forEach(b => b.classList.remove('active'));
+
+            if (isShowing) return;
+
+            // Tampilkan form input DAN list komen
+            form.classList.add('show');
+            commentsList.classList.add('show');
+            toggleBtn.classList.add('active');
+
+            commentsList.innerHTML = '<div class="no-comments">Memuat komen...</div>';
+
+            const { data, error } = await client
+                .from('comments')
+                .select('*')
+                .eq('message_id', messageId)
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('Error loading comments:', error);
+                commentsList.innerHTML = '<div class="no-comments">Gagal memuat komen</div>';
+                return;
+            }
+
+            displayComments(messageId, data);
+        }
+
+        // --- TAMPILKAN KOMEN ---
+        function displayComments(messageId, comments) {
+            const commentsList = document.getElementById(`comments-list-${messageId}`);
+            const countSpan = document.getElementById(`comment-count-${messageId}`);
+
+            countSpan.textContent = `(${comments.length})`;
+
+            if (comments.length === 0) {
+                commentsList.innerHTML = '<div class="no-comments">Belum ada komen. Jadilah yang pertama!</div>';
+                return;
+            }
+
+            commentsList.innerHTML = comments.map(comment => {
+                const date = new Date(comment.created_at).toLocaleString('id-ID', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+                const sender = comment.sender || 'Anonymous';
+
+                return `
+                    <div class="comment-item">
+                        <div class="comment-header">
+                            <span class="comment-sender-name">${sender}</span>
+                            <span class="comment-time">${date}</span>
+                        </div>
+                        <div class="comment-text">${comment.content}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // --- KIRIM KOMEN ---
+        async function submitComment(messageId) {
+            const senderInput = document.getElementById(`comment-sender-${messageId}`);
+            const textInput = document.getElementById(`comment-text-${messageId}`);
+            const submitBtn = document.getElementById(`comment-submit-${messageId}`);
+
+            const sender = senderInput.value.trim();
+            const content = textInput.value.trim();
+
+            if (!content) {
+                alert('Tulis komen dulu!');
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Mengirim...';
+
+            try {
+                const { error } = await client
+                    .from('comments')
+                    .insert([{
+                        message_id: messageId,
+                        sender: sender,
+                        content: content
+                    }]);
+
+                if (error) throw error;
+
+                // Reset form
+                textInput.value = '';
+
+                // Reload komen untuk menampilkan yang baru
+                await loadComments(messageId);
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Gagal mengirim komen: ' + error.message);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Kirim Komen';
+            }
+        }
+
+        // --- TAMPILKAN PESAN KE HTML ---
+        function displayMessages(messages) {
+            const list = document.getElementById('message-list');
+
+            if (messages.length === 0) {
+                list.innerHTML = '<li class="empty-state">Belum ada pesan.</li>';
+                return;
+            }
+
+            messages.forEach(msg => {
+                const li = document.createElement('li');
+                li.className = 'message-card';
+                li.id = `msg-${msg.id}`;
+
+                const date = new Date(msg.created_at).toLocaleString('id-ID', {
+                    day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+                });
+
+                const senderText = msg.sender ? msg.sender : 'Anonymous';
+                const recipientText = msg.recipient ? msg.recipient : 'Semua';
+
+                let imageHtml = '';
+                if (msg.image_url) {
+                    imageHtml = `<img src="${msg.image_url}" class="msg-image" alt="Gambar">`;
+                }
+
+                li.innerHTML = `
+                    <div class="msg-header">
+                        <span class="msg-badge">
+                            <span class="label">From:</span>
+                            <span class="name">${senderText}</span>
+                        </span>
+                        <span class="msg-arrow">&rarr;</span>
+                        <span class="msg-badge">
+                            <span class="label">To:</span>
+                            <span class="name">${recipientText}</span>
+                        </span>
+                    </div>
+                    <div class="msg-content">${msg.content || ''}</div>
+                    ${imageHtml}
+                    <span class="timestamp">${date}</span>
+
+                    <div class="comments-section">
+                        <button class="comment-toggle-btn" id="comment-toggle-${msg.id}" onclick="loadComments('${msg.id}')">
+                            💬 Komentar <span class="comment-count" id="comment-count-${msg.id}"></span>
+                        </button>
+
+                        <div class="comment-form" id="comment-form-${msg.id}">
+                            <div class="comment-input-row">
+                                <input type="text" class="comment-sender-input" id="comment-sender-${msg.id}" placeholder="Nama (opsional)">
+                                <input type="text" class="comment-text-input" id="comment-text-${msg.id}" placeholder="Tulis komen...">
+                            </div>
+                            <button class="comment-submit-btn" id="comment-submit-${msg.id}" onclick="submitComment('${msg.id}')">Kirim Komen</button>
+                        </div>
+
+                        <div class="comments-list" id="comments-list-${msg.id}"></div>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        // Muat pesan pertama kali
+        loadMessages();
+    </script>
+</body>
+  </html>
